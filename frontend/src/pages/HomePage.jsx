@@ -16,7 +16,7 @@ import Button from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { TutorCard } from '../components/tutors/TutorCard';
 import { searchTutors } from '../api/api'; // Import the API function
-import sidePic from "../assets/sidepic.png";
+
 import Rahel from "../assets/Rahel.jpg";
 import Fatuma from "../assets/Fatuma.jpg";
 import Henok from "../assets/Henok.jpg";
@@ -108,7 +108,7 @@ const HomePage = () => {
             </div>
             <div className="hidden lg:block relative">
               <img
-                src={sidePic}
+                src="/sidePic.png"
                 alt="Online tutoring session"
                 className="rounded-lg object-cover h-full w-full"
               />
