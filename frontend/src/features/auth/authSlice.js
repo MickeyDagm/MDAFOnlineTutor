@@ -91,24 +91,24 @@ const authSlice = createSlice({
   },
 });
 
-export const checkAuth = createAsyncThunk(
-  "/auth/check-auth",
-  async (token, { rejectWithValue }) => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/auth/check-auth`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Cache-Control": "no-cache",
-          },
-        }
-      );
-      return response.data;
-    } catch (err) {
-      return rejectWithValue(err.response?.data || { message: "Unauthorized" });
+export const checkAuth = createAsyncThunk('auth/checkAuth', async (_, { getState, rejectWithValue }) => {
+  try {
+    const { token } = getState().auth;
+    if (!token) {
+      return rejectWithValue('No token found');
     }
+    
+    const response = await axios.get('/api/auth/check-auth', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    localStorage.removeItem('token');
+    return rejectWithValue(error.response?.data || 'Authentication failed');
   }
-);
+});
 export const { logout } = authSlice.actions;
 export default authSlice.reducer;

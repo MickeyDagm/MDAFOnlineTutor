@@ -1,5 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import { store } from './store';
 import Navbar from './components/layout/NavBar';
 import { Footer } from './components/layout/Footer';
@@ -23,12 +24,42 @@ import FAQPage from './pages/FAQPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import PricingPage from './pages/PricingPage';
 import DashboardRedirect from './pages/DashboardRedirect';
+import { checkAuth } from './features/auth/authSlice';
 
+const ProtectedRoute = ({ allowedRoles, reverse = false }) => {
+  const dispatch = useDispatch();
+  const { user, loading } = useSelector((state) => state.auth);
 
+  useEffect(() => {
+    if (!user && !loading) {
+      dispatch(checkAuth());
+    }
+  }, [dispatch, user, loading]);
 
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  // For reverse protection (login/signup pages)
+  if (reverse && user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // For normal protection
+  if (!reverse) {
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    }
+
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+  }
+
+  return <Outlet />;
+};
 
 function App() {
-
   return (
     <Provider store={store}>
       <Router>
@@ -36,28 +67,45 @@ function App() {
           <Navbar />
           <main className="flex-1">
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<HomePage />} />
               <Route path="/find-tutors" element={<FindTutorsPage />} />
-              <Route path="/become-tutor" element={<BecomeTutorPage />} />
               <Route path="/tutors/:id" element={<TutorProfilePage />} />
-              <Route path="/profile" element={<ProfileRedirect />} />
-              <Route path="/EditTutorProfile" element={<EditTutorProfilePage />} />
-              <Route path="/EditStudentProfile" element={<EditStudentProfilePage />} />
-              <Route path="/edit-tutor-profile" element={<EditTutorProfilePage />} />
-              <Route path="/edit-student-profile" element={<EditStudentProfilePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/book/:id" element={<BookingPage />} />
-              <Route path="/payment" element={<PaymentPage />} />
-              <Route path="/dashboard" element={<DashboardRedirect />} />
-              <Route path="/sessions/:id/video-call" element={<VideoCallPage />} />
-              <Route path="/sessions/:id/confirm" element={<SessionConfirmationPage />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/sessions" element={<SessionsRedirect />} />
-              <Route path="*" element={<NotFoundPage />} />
               <Route path="/FAQ" element={<FAQPage />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              
+              {/* Auth-protected routes (reverse) */}
+              <Route element={<ProtectedRoute reverse />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+              </Route>
+
+              {/* Protected routes (require auth) */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/profile" element={<ProfileRedirect />} />
+                <Route path="/dashboard" element={<DashboardRedirect />} />
+                <Route path="/sessions" element={<SessionsRedirect />} />
+                <Route path="/book/:id" element={<BookingPage />} />
+                <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/sessions/:id/video-call" element={<VideoCallPage />} />
+                <Route path="/sessions/:id/confirm" element={<SessionConfirmationPage />} />
+              </Route>
+
+              {/* Tutor-specific routes */}
+              <Route element={<ProtectedRoute allowedRoles={['tutor']} />}>
+                <Route path="/become-tutor" element={<BecomeTutorPage />} />
+                <Route path="/edit-tutor-profile" element={<EditTutorProfilePage />} />
+              </Route>
+
+              {/* Student-specific routes */}
+              <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+                <Route path="/edit-student-profile" element={<EditStudentProfilePage />} />
+              </Route>
+
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
           <Footer />
