@@ -44,7 +44,7 @@ const getNavLinks = (isAuthenticated, role) => {
     tutor: [
       ...baseLinks,
       { name: 'My Sessions', path: '/sessions' }, // Updated to /sessions
-      { name: 'My Students', path: '/my-students' },
+      
     ],
     admin: [
       ...baseLinks,
@@ -134,7 +134,7 @@ export default function NavBar() {
                 <span className="text-sm font-medium">{user?.name || 'User'}</span>
               </div>
               <Link
-                to={`/${user?.role}-dashboard`}
+                to="/dashboard"
                 className="text-sm font-semibold text-gray-900 hover:text-teal-700"
               >
                 Dashboard
@@ -218,7 +218,7 @@ export default function NavBar() {
                 {isAuthenticated ? (
                   <>
                     <Link
-                      to={`/${user?.role}-dashboard`}
+                      to="/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
                       className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-50"
                     >
