@@ -197,7 +197,7 @@ const bcrypt = require('bcryptjs');
        console.log('Raw payments:', payments);
 
        const earnings = payments.map(payment => {
-         const commissionRate = 0.1;
+         const commissionRate = 0.3;
          const total = payment.amount;
          const commission = total * commissionRate;
          const net = total - commission;

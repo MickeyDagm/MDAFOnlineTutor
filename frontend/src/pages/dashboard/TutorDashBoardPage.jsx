@@ -144,7 +144,7 @@ export default function TutorDashboardPage() {
                   <th className="p-3 border-b">Student</th>
                   <th className="p-3 border-b">Subject</th>
                   <th className="p-3 border-b">Total (ETB)</th>
-                  <th className="p-3 border-b">Commission (10%)</th>
+                  <th className="p-3 border-b">Commission (30%)</th>
                   <th className="p-3 border-b">Net (ETB)</th>
                 </tr>
               </thead>
