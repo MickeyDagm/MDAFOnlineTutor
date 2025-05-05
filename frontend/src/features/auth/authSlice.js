@@ -111,5 +111,16 @@ export const checkAuth = createAsyncThunk('auth/checkAuth', async (_, { getState
   }
 });
 
+export const sendPasswordResetEmail = createAsyncThunk(
+  'auth/sendPasswordResetEmail',
+  async ({ email }, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/auth/reset-password', { email });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'An error occurred');
+    }
+  }
+);
 export const { logout } = authSlice.actions;
 export default authSlice.reducer;

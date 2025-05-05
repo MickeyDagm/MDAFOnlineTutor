@@ -81,7 +81,7 @@ export const LoginForm = () => {
           </div>
 
           <div className="text-sm">
-            <Link to="/forgot-password" className="font-medium text-teal-600 hover:text-primary-500">
+            <Link to="/forgotPassword" className="font-medium text-teal-600 hover:text-primary-500">
               Forgot your password?
             </Link>
           </div>

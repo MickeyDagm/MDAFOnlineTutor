@@ -26,6 +26,7 @@ import DashboardRedirect from './pages/DashboardRedirect';
 import { checkAuth } from './features/auth/authSlice';
 import { useEffect, useState } from 'react';
 import SignupPaymentPage from './pages/SignupPaymentPage';
+import ForgotPasswordPage from './pages/ForgotPassword';
 
 const ProtectedRoute = ({ allowedRoles, reverse = false }) => {
   const dispatch = useDispatch();
@@ -81,6 +82,7 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/signup-payment" element={<SignupPaymentPage />} />
+                <Route path="/forgotPassword" element={<ForgotPasswordPage />} />
               </Route>
 
               {/* Protected routes (require auth) */}
