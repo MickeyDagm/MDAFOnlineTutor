@@ -125,7 +125,7 @@ export const SignupForm = () => {
     try {
       const response = await dispatch(registerUser(userData)).unwrap();
       if (response.paymentRequired) {
-        navigate('/payment', { state: { userData: response.userData } });
+        navigate('/signup-payment', { state: { userData: response.userData } });
       } else {
         navigate('/');
       }
