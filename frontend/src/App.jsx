@@ -27,6 +27,9 @@ import { checkAuth } from './features/auth/authSlice';
 import { useEffect, useState } from 'react';
 import SignupPaymentPage from './pages/SignupPaymentPage';
 import ForgotPasswordPage from './pages/ForgotPassword';
+import TermsAndConditions from './pages/Footer/TermsAndConditions'
+import PrivacyPolicy from './pages/Footer/PrivacyPolicy';
+import CookiePolicy from './pages/Footer/CookiePolicy';
 
 const ProtectedRoute = ({ allowedRoles, reverse = false }) => {
   const dispatch = useDispatch();
@@ -76,6 +79,9 @@ function App() {
               <Route path="/FAQ" element={<FAQPage />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
               
               {/* Auth-protected routes (reverse) */}
               <Route element={<ProtectedRoute reverse />}>
