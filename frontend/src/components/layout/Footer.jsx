@@ -106,7 +106,7 @@ export const Footer = () => {
             <ul className="space-y-4">
               <li className="flex items-start">
                 <Mail className="h-5 w-5 text-teal-600 mt-0.5 mr-2" />
-                <span className="text-secondary-400">support@educonnect.com</span>
+                <span className="text-secondary-400">support@mdafsupport.com</span>
               </li>
               <li>
                 <Link 
