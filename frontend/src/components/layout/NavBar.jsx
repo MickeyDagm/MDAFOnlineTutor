@@ -109,7 +109,7 @@ export default function NavBar() {
               {link.name}
             </Link>
           ))}
-          {isAuthenticated && user?.role === 'student' && (
+          {/* {isAuthenticated && user?.role === 'student' && (
             <Link
               to="/become-tutor"
               className={`text-sm font-semibold hover:text-teal-700 ${
@@ -118,7 +118,7 @@ export default function NavBar() {
             >
               Become a Tutor
             </Link>
-          )}
+          )} */}
         </PopoverGroup>
 
         {/* Auth Section Desktop */}
@@ -202,7 +202,7 @@ export default function NavBar() {
                     {link.name}
                   </Link>
                 ))}
-                {isAuthenticated && user?.role === 'student' && (
+                {/* {isAuthenticated && user?.role === 'student' && (
                   <Link
                     to="/become-tutor"
                     onClick={() => setMobileMenuOpen(false)}
@@ -212,7 +212,7 @@ export default function NavBar() {
                   >
                     Become a Tutor
                   </Link>
-                )}
+                )} */}
               </div>
               <div className="py-6">
                 {isAuthenticated ? (
