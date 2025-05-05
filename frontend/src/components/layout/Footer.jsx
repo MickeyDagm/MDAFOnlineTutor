@@ -123,7 +123,7 @@ export const Footer = () => {
         <div className="border-t border-secondary-800 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-secondary-400 text-sm">
-              &copy; {new Date().getFullYear()} EduConnect. All rights reserved.
+              &copy; {new Date().getFullYear()} MDAF Onlie Tutor. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link to="/terms-and-conditions" className="text-sm text-secondary-400 hover:text-teal-600 transition-colors">
