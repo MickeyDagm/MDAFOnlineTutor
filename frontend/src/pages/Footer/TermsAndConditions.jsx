@@ -84,7 +84,7 @@ const TermsAndConditions = () => {
       <section className="mb-6">
         <h2 className="text-2xl font-semibold mb-2">Contact Information</h2>
         <p className="text-gray-600">
-          For inquiries, contact us at <a href="mailto:support@mdafonlinetutor.com" className="text-blue-600 hover:underline">support@mdafonlinetutor.com</a> or [Your Physical Address].
+          For inquiries, contact us at <a href="mailto:support@mdafonlinetutor.com" className="text-blue-600 hover:underline">support@mdafonlinetutor.com</a>.
         </p>
       </section>
     </div>
