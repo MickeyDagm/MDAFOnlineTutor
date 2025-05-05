@@ -23,8 +23,9 @@ import FAQPage from './pages/FAQPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import PricingPage from './pages/PricingPage';
 import DashboardRedirect from './pages/DashboardRedirect';
-
-
+import TermsAndConditions from './pages/Footer/TermsAndConditions';
+import PrivacyPolicy from './pages/Footer/PrivacyPolicy';
+import CookiePolicy from './pages/Footer/CookiePolicy';
 
 
 function App() {
@@ -58,6 +59,9 @@ function App() {
               <Route path="/FAQ" element={<FAQPage />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/cookie-policy" element={<CookiePolicy/>} />
             </Routes>
           </main>
           <Footer />

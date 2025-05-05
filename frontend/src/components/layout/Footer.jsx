@@ -126,13 +126,13 @@ export const Footer = () => {
               &copy; {new Date().getFullYear()} EduConnect. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link to="/terms" className="text-sm text-secondary-400 hover:text-teal-600 transition-colors">
+              <Link to="/terms-and-conditions" className="text-sm text-secondary-400 hover:text-teal-600 transition-colors">
                 Terms of Service
               </Link>
-              <Link to="/privacy" className="text-sm text-secondary-400 hover:text-teal-600 transition-colors">
+              <Link to="/privacy-policy" className="text-sm text-secondary-400 hover:text-teal-600 transition-colors">
                 Privacy Policy
               </Link>
-              <Link to="/cookies" className="text-sm text-secondary-400 hover:text-teal-600 transition-colors">
+              <Link to="/cookie-policy" className="text-sm text-secondary-400 hover:text-teal-600 transition-colors">
                 Cookie Policy
               </Link>
             </div>
