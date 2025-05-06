@@ -82,6 +82,7 @@ function App() {
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/become-tutor" element={<BecomeTutorPage />} />
               
               {/* Auth-protected routes (reverse) */}
               <Route element={<ProtectedRoute reverse />}>
@@ -105,7 +106,6 @@ function App() {
 
               {/* Tutor-specific routes */}
               <Route element={<ProtectedRoute allowedRoles={['tutor']} />}>
-                <Route path="/become-tutor" element={<BecomeTutorPage />} />
                 <Route path="/edit-tutor-profile" element={<EditTutorProfilePage />} />
               </Route>
 
