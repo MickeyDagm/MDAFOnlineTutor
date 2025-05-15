@@ -91,91 +91,126 @@ const verifyTutor = async (req, res) => {
 };
 
 const searchTutors = async (req, res) => {
-    const { search, learningGoals, subjects, priceMin, priceMax, availability, rating, sortBy, page = 1, limit = 10 } = req.query;
-    try {
-      const query = { role: 'tutor'};
+  const { search, learningGoals, subjects, priceMin, priceMax, availability, rating, sortBy, page = 1, limit = 10 } = req.query;
+  try {
+    const query = { role: 'tutor' };
+    console.log('Query params:', JSON.stringify(req.query, null, 2));
 
-      if (search) {
-        const searchRegex = new RegExp(search, 'i');
-        query.$or = [
-          { name: searchRegex },
-          { subjects: searchRegex },
-          { bio: searchRegex },
-        ];
-      }
+    // Array to hold filter conditions
+    const filterConditions = [];
 
-      if (learningGoals) {
-        const goalsArray = learningGoals.split(',');
-        query.specialties = { $in: goalsArray };
-      }
+    // Search filter
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      console.log('Search term:', searchTerm);
+      filterConditions.push({
+        $or: [
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { subjects: { $regex: searchTerm, $options: 'i' } },
+          { bio: { $regex: searchTerm, $options: 'i' } },
+        ],
+      });
+    }
 
-      if (subjects) {
-        const subjectsArray = subjects.split(',');
-        query.subjects = { $in: subjectsArray };
-      }
+    // Subjects filter
+    if (subjects) {
+      const subjectsArray = Array.isArray(subjects) ? subjects : subjects.split(',').map(s => s.trim());
+      console.log('Subjects array:', subjectsArray);
+      filterConditions.push({ subjects: { $in: subjectsArray } });
+    }
 
-      if (priceMin || priceMax) {
-        query.pricePerHour = {
+    // Learning goals filter
+    if (learningGoals) {
+      const goalsArray = Array.isArray(learningGoals) ? learningGoals : learningGoals.split(',').map(g => g.trim());
+      console.log('Learning goals array:', goalsArray);
+      filterConditions.push({ specialties: { $in: goalsArray } });
+    }
+
+    // Price range filter
+    if (priceMin || priceMax) {
+      const priceFilter = {
+        pricePerHour: {
           $gte: priceMin ? Number(priceMin) : 0,
           $lte: priceMax ? Number(priceMax) : Infinity,
-        };
-      }
-
-      if (availability) {
-        const availabilityArray = availability.split(',');
-        query['availability.day'] = { $in: availabilityArray };
-      }
-
-      if (rating) {
-        query.rating = { $gte: Number(rating) };
-      }
-
-      const pageNum = parseInt(page, 10);
-      const limitNum = parseInt(limit, 10);
-      const skip = (pageNum - 1) * limitNum;
-
-      const totalTutors = await User.countDocuments(query);
-
-      let tutorsQuery = User.find(query)
-        .skip(skip)
-        .limit(limitNum);
-
-      if (sortBy === 'priceLowToHigh') {
-        tutorsQuery = tutorsQuery.sort({ pricePerHour: 1 });
-      } else if (sortBy === 'priceHighToLow') {
-        tutorsQuery = tutorsQuery.sort({ pricePerHour: -1 });
-      } else {
-        tutorsQuery = tutorsQuery.sort({ rating: -1 });
-      }
-
-      const tutors = await tutorsQuery.exec();
-
-      const sessionCounts = await Session.aggregate([
-        { $match: { status: 'completed', tutorId: { $in: tutors.map(t => t._id) } } },
-        { $group: { _id: '$tutorId', totalSessions: { $sum: 1 } } },
-      ]);
-
-      const sessionCountMap = sessionCounts.reduce((acc, curr) => {
-        acc[curr._id.toString()] = curr.totalSessions;
-        return acc;
-      }, {});
-
-      const tutorsWithSessions = tutors.map(tutor => ({
-        ...tutor.toObject(),
-        totalSessions: sessionCountMap[tutor._id.toString()] || 0,
-      }));
-
-      res.json({
-        tutors: tutorsWithSessions,
-        totalTutors,
-        currentPage: pageNum,
-        totalPages: Math.ceil(totalTutors / limitNum),
-        limit: limitNum,
-      });
-    } catch (error) {
-      console.error('Error in searchTutors:', error.message, error.stack);
-      res.status(500).json({ error: 'Search failed', details: error.message });
+        },
+      };
+      console.log('Price query:', JSON.stringify(priceFilter, null, 2));
+      filterConditions.push(priceFilter);
     }
+
+    // Availability filter
+    if (availability) {
+      const availabilityArray = Array.isArray(availability) ? availability : availability.split(',').map(d => d.trim());
+      console.log('Availability array:', availabilityArray);
+      filterConditions.push({ 'availability.day': { $in: availabilityArray } });
+    }
+
+    // Rating filter
+    if (rating) {
+      const minRating = Number(rating);
+      if (!isNaN(minRating)) {
+        console.log('Rating query:', { rating: { $gte: minRating } });
+        filterConditions.push({ rating: { $gte: minRating } });
+      }
+    }
+
+    // Combine filter conditions with $or if any exist
+    if (filterConditions.length > 0) {
+      query.$or = filterConditions;
+    }
+    console.log('Final query:', JSON.stringify(query, null, 2));
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalTutors = await User.countDocuments(query);
+    console.log('Total tutors matching query:', totalTutors);
+
+    let tutorsQuery = User.find(query)
+      .skip(skip)
+      .limit(limitNum);
+
+    if (sortBy === 'priceLowToHigh') {
+      tutorsQuery = tutorsQuery.sort({ pricePerHour: 1 });
+    } else if (sortBy === 'priceHighToLow') {
+      tutorsQuery = tutorsQuery.sort({ pricePerHour: -1 });
+    } else {
+      tutorsQuery = tutorsQuery.sort({ rating: -1 });
+    }
+
+    const tutors = await tutorsQuery.exec();
+    console.log('Fetched tutors:', JSON.stringify(tutors, null, 2));
+
+    const sessionCounts = await Session.aggregate([
+      { $match: { status: 'completed', tutorId: { $in: tutors.map(t => t._id) } } },
+      { $group: { _id: '$tutorId', totalSessions: { $sum: 1 } } },
+    ]);
+
+    const sessionCountMap = sessionCounts.reduce((acc, curr) => {
+      acc[curr._id.toString()] = curr.totalSessions;
+      return acc;
+    }, {});
+
+    const tutorsWithSessions = tutors.map(tutor => ({
+      ...tutor.toObject(),
+      totalSessions: sessionCountMap[tutor._id.toString()] || 0,
+    }));
+
+    const response = {
+      tutors: tutorsWithSessions,
+      totalTutors,
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalTutors / limitNum),
+      limit: limitNum,
+    };
+    console.log('Response sent:', JSON.stringify(response, null, 2));
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error in searchTutors:', error.message, error.stack);
+    res.status(500).json({ error: 'Search failed', details: error.message });
+  }
 };
 
 const getTutorEarnings = async (req, res) => {
@@ -661,22 +696,20 @@ const completeSession = async (req, res) => {
 
 const getFilterOptions = async (req, res) => {
   try {
-    // Fetch unique subjects from tutors
     const subjects = await User.distinct("subjects", { role: "tutor" });
-
-    // Fetch unique specialties (learning goals) from tutors
     const specialties = await User.distinct("specialties", { role: "tutor" });
-
-    // Fetch unique availability days from tutors
     const availabilityDays = await User.distinct("availability.day", { role: "tutor" });
 
-    res.json({
-      subjects: subjects.filter(s => s), // Remove any null/undefined values
+    const response = {
+      subjects: subjects.filter(s => s),
       learningGoals: specialties.filter(s => s),
       days: availabilityDays.filter(d => d),
-    });
+    };
+    console.log('Filter options response:', JSON.stringify(response, null, 2));
+
+    res.json(response);
   } catch (error) {
-    console.error('Error fetching filter options:', error.message);
+    console.error('Error fetching filter options:', error.message, error.stack);
     res.status(500).json({ error: 'Failed to fetch filter options', details: error.message });
   }
 };

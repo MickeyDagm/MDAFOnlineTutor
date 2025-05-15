@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TutorCard } from '../components/tutors/TutorCard';
 import { TutorFilter } from '../components/tutors/TutorFilter';
 import { searchTutors, getFilterOptions } from '../api/api';
@@ -13,7 +13,15 @@ const FindTutorsPage = () => {
     totalTutors: 0,
     limit: 10,
   });
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    search: '',
+    subjects: [],
+    learningGoals: [],
+    priceRange: [0, 10000],
+    availability: [],
+    rating: 0,
+    sortBy: 'rating',
+  });
   const [filterOptions, setFilterOptions] = useState({
     subjects: [],
     learningGoals: [],
@@ -23,14 +31,14 @@ const FindTutorsPage = () => {
   const fetchFilterOptions = async () => {
     try {
       const response = await getFilterOptions();
+      console.log('Filter options response:', JSON.stringify(response, null, 2));
       setFilterOptions({
-        subjects: response.subjects,
-        learningGoals: response.learningGoals,
-        days: response.days,
+        subjects: response.subjects || [],
+        learningGoals: response.learningGoals || [],
+        days: response.days || [],
       });
     } catch (err) {
-      console.error('Error fetching filter options:', err);
-      setError(err || 'Failed to load filter options');
+      console.error('Error fetching filter options:', err.message);
     }
   };
 
@@ -40,53 +48,117 @@ const FindTutorsPage = () => {
       setError(null);
 
       const queryParams = {
-        search: filters.search || undefined,
-        learningGoals: filters.learningGoals?.length > 0 ? filters.learningGoals.join(',') : undefined,
-        subjects: filters.subjects?.length > 0 ? filters.subjects.join(',') : undefined,
-        priceMin: filters.priceRange ? filters.priceRange[0] : undefined,
-        priceMax: filters.priceRange ? filters.priceRange[1] : undefined,
-        availability: filters.availability?.length > 0 ? filters.availability.join(',') : undefined,
-        rating: filters.rating || undefined,
-        sortBy: filters.sortBy || undefined,
         page,
         limit: pagination.limit,
       };
 
-      console.log('Fetching tutors with queryParams:', queryParams);
+      if (filters.search && filters.search.trim()) {
+        queryParams.search = filters.search.trim();
+        console.log('Search filter applied:', queryParams.search);
+      }
+      if (filters.learningGoals.length) {
+        queryParams.learningGoals = filters.learningGoals.join(',');
+        console.log('Learning goals filter applied:', queryParams.learningGoals);
+      }
+      if (filters.subjects.length) {
+        queryParams.subjects = filters.subjects.join(',');
+        console.log('Subjects filter applied:', queryParams.subjects);
+      }
+      if (filters.priceRange && (filters.priceRange[0] !== 0 || filters.priceRange[1] !== 10000)) {
+        queryParams.priceMin = filters.priceRange[0];
+        queryParams.priceMax = filters.priceRange[1];
+        console.log('Price filter applied:', queryParams.priceMin, queryParams.priceMax);
+      }
+      if (filters.availability.length) {
+        queryParams.availability = filters.availability.join(',');
+        console.log('Availability filter applied:', queryParams.availability);
+      }
+      if (filters.rating > 0) {
+        queryParams.rating = filters.rating;
+        console.log('Rating filter applied:', queryParams.rating);
+      }
+      if (filters.sortBy) {
+        queryParams.sortBy = filters.sortBy;
+        console.log('Sort by applied:', queryParams.sortBy);
+      }
+
+      console.log('Sending query params:', JSON.stringify(queryParams, null, 2));
       const response = await searchTutors(queryParams);
-      console.log('API response:', response.data);
-      setFilteredTutors(response.data.tutors);
+      console.log('API response:', JSON.stringify(response, null, 2));
+
+      const tutors = response.data?.tutors || [];
+      console.log('Tutors in response:', JSON.stringify(tutors, null, 2));
+
+      if (!response.data || !Array.isArray(tutors)) {
+        throw new Error('Invalid response structure: tutors array not found');
+      }
+
+      setFilteredTutors(tutors);
       setPagination({
-        currentPage: response.data.currentPage,
-        totalPages: response.data.totalPages,
-        totalTutors: response.data.totalTutors,
-        limit: response.data.limit,
+        currentPage: response.data.currentPage || 1,
+        totalPages: response.data.totalPages || 1,
+        totalTutors: response.data.totalTutors || 0,
+        limit: response.data.limit || 10,
       });
     } catch (err) {
-      console.error('Error fetching tutors:', err);
-      setError(err.response?.data?.error || 'Failed to load tutors');
+      console.error('Error fetching tutors:', err.message, err.stack);
+      setError(err.message || 'Failed to load tutors');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch filter options and tutors on initial load
   useEffect(() => {
-    fetchFilterOptions();
+    console.log('Initial fetch triggered');
     fetchTutors(1);
+    fetchFilterOptions();
   }, []);
 
-  // Fetch tutors when filters change
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    console.log('Filters changed:', JSON.stringify(filters, null, 2));
     fetchTutors(1);
   }, [filters]);
 
+  const resetFilters = (activeFilter) => {
+    const defaultFilters = {
+      search: '',
+      subjects: [],
+      learningGoals: [],
+      priceRange: [0, 10000],
+      availability: [],
+      rating: 0,
+      sortBy: filters.sortBy, // Preserve sortBy
+    };
+    return { ...defaultFilters, ...activeFilter };
+  };
+
   const handleFilter = (newFilters) => {
-    setFilters(newFilters);
+    console.log('New filters applied:', JSON.stringify(newFilters, null, 2));
+    setFilters((prev) => {
+      let updatedFilters = prev;
+      // Reset other filters if search or subjects are applied
+      if (newFilters.search && newFilters.search.trim()) {
+        updatedFilters = resetFilters({ search: newFilters.search, sortBy: newFilters.sortBy || prev.sortBy });
+      } else if (newFilters.subjects && newFilters.subjects.length) {
+        updatedFilters = resetFilters({ subjects: newFilters.subjects, sortBy: newFilters.sortBy || prev.sortBy });
+      } else if (newFilters.priceRange && (newFilters.priceRange[0] !== prev.priceRange[0] || newFilters.priceRange[1] !== prev.priceRange[1])) {
+        updatedFilters = resetFilters({ priceRange: newFilters.priceRange, sortBy: newFilters.sortBy || prev.sortBy });
+      } else {
+        updatedFilters = { ...prev, ...newFilters };
+      }
+      console.log('Updated filters state:', JSON.stringify(updatedFilters, null, 2));
+      return updatedFilters;
+    });
   };
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
+      console.log('Changing page to:', newPage);
       fetchTutors(newPage);
     }
   };
@@ -101,11 +173,12 @@ const FindTutorsPage = () => {
           </p>
         </div>
 
-        <TutorFilter 
-          onFilter={handleFilter} 
-          subjects={filterOptions.subjects} 
-          learningGoals={filterOptions.learningGoals} 
-          days={filterOptions.days} 
+        <TutorFilter
+          onFilter={handleFilter}
+          subjects={filterOptions.subjects}
+          learningGoals={filterOptions.learningGoals}
+          days={filterOptions.days}
+          currentFilters={filters}
         />
 
         <div className="mt-8">
@@ -121,13 +194,13 @@ const FindTutorsPage = () => {
           ) : filteredTutors.length > 0 ? (
             <>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredTutors.map(tutor => (
-                  <TutorCard key={tutor._id} tutor={tutor} />
-                ))}
+                {filteredTutors.map((tutor) => {
+                  console.log('Rendering tutor:', JSON.stringify(tutor, null, 2));
+                  return <TutorCard key={tutor._id} tutor={tutor} />;
+                })}
               </div>
 
-              {/* Pagination Controls */}
-              <div className="mt-6 flex justify-center items-center space-x-4">
+ nocheckpoint              <div className="mt-6 flex justify-center items-center space-x-4">
                 <button
                   onClick={() => handlePageChange(pagination.currentPage - 1)}
                   disabled={pagination.currentPage === 1}

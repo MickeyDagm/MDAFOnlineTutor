@@ -25,7 +25,7 @@ const BookingPage = () => {
 
         // Fetch tutor details
         const tutorResponse = await getTutorById(id);
-        console.log('Fetched tutor:', tutorResponse.data);
+        console.log('Fetched tutor:', JSON.stringify(tutorResponse.data, null, 2));
         const fetchedTutor = tutorResponse.data;
         setTutor(fetchedTutor);
 
@@ -44,46 +44,63 @@ const BookingPage = () => {
           const date = new Date(today);
           date.setDate(today.getDate() + i);
           const dayName = daysOfWeek[date.getDay()];
-          const dateStr = date.toISOString().split('T')[0]; // e.g., "2025-05-01"
+          const dateStr = date.toISOString().split('T')[0]; // e.g., "2025-05-15"
 
           // Find the tutor's availability for this day
           const dayAvailability = fetchedTutor.availability?.find(slot => slot.day === dayName);
           if (!dayAvailability) continue;
-          
+
           const startHour = parseInt(dayAvailability.startTime?.split(':')[0], 10);
+          const startMinute = parseInt(dayAvailability.startTime?.split(':')[1] || '0', 10);
           const endHour = parseInt(dayAvailability.endTime?.split(':')[0], 10);
-          
+          const endMinute = parseInt(dayAvailability.endTime?.split(':')[1] || '0', 10);
+
           if (isNaN(startHour) || isNaN(endHour)) continue;
-          
-          for (let h = startHour; h < endHour; h++) {
-            const time = `${String(h).padStart(2, '0')}:00`;
-            const localDateTime = new Date(`${dateStr}T${time}:00`);
-            const utcDateTime = new Date(localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000));
+
+          // Generate slots in 30-minute increments
+          let currentTime = startHour * 60 + startMinute;
+          const endTime = endHour * 60 + endMinute;
+
+          while (currentTime < endTime) {
+            const hours = Math.floor(currentTime / 60);
+            const minutes = currentTime % 60;
+            const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            const localDateTime = new Date(`${dateStr}T${time}:00+03:00`); // Assume tutor's time in EAT (UTC+3)
+            const utcDateTime = new Date(localDateTime.getTime() - (3 * 60 * 60 * 1000)); // Convert to UTC
+            const localDisplayTime = localDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // Client's local time
+
             slots.push({
               date: dateStr,
               day: dayName,
-              time,
-              utcTime: utcDateTime.toISOString().split('T')[1].substring(0, 5), // UTC time
-              utcDate: utcDateTime.toISOString().split('T')[0] // UTC date
+              time: localDisplayTime, // Display in client's local time
+              utcTime: utcDateTime.toISOString().split('T')[1].substring(0, 5), // UTC time (e.g., "06:00")
+              utcDate: utcDateTime.toISOString().split('T')[0], // UTC date
+              localDateTime: localDateTime.toISOString(), // For reference
             });
+
+            currentTime += 30; // Increment by 30 minutes
           }
         }
+
+        console.log('Generated slots:', JSON.stringify(slots, null, 2));
 
         // Fetch booked sessions for the tutor
         const sessionsResponse = await getTutorSessions(id);
         const bookedSessions = sessionsResponse.data;
+        console.log('Booked sessions:', JSON.stringify(bookedSessions, null, 2));
 
         // Filter out slots that are already booked
         const available = slots.filter(slot => {
-          const slotStart = new Date(`${slot.date}T${slot.time}:00`);
-          const slotEnd = new Date(slotStart.getTime() + 4 * 60 * 60 * 1000); // Max 4-hour duration
+          const slotStart = new Date(slot.localDateTime);
+          const slotEnd = new Date(slotStart.getTime() + 2 * 60 * 60 * 1000); // Max 2-hour duration
           return !bookedSessions.some(session => {
-            const sessionStart = new Date(`${session.date}T${session.startTime}:00`);
-            const sessionEnd = new Date(`${session.date}T${session.endTime}:00`);
+            const sessionStart = new Date(`${session.date}T${session.startTime}:00Z`);
+            const sessionEnd = new Date(`${session.date}T${session.endTime}:00Z`);
             return sessionStart < slotEnd && sessionEnd > slotStart;
           });
         });
 
+        console.log('Available slots:', JSON.stringify(available, null, 2));
         setAvailableSlots(available);
       } catch (err) {
         console.error('Error fetching tutor:', err);
@@ -113,13 +130,15 @@ const BookingPage = () => {
         selectedDuration,
         subject: selectedSubject,
         selectedDate: selectedSlot.date,
-        utcStartTime: `${selectedSlot.utcDate}T${selectedSlot.utcTime}:00`, // Send UTC time
-        timezoneOffset: new Date().getTimezoneOffset() // Send client's timezone offset
+        utcStartTime: `${selectedSlot.utcDate}T${selectedSlot.utcTime}:00Z`, // UTC time
+        timezoneOffset: new Date().getTimezoneOffset(), // Client's timezone offset
       });
+
+      console.log('Session created:', JSON.stringify(response.data, null, 2));
 
       const session = response.data.session;
 
-      // Navigate to payment page with session details
+      // Navigate to payment page
       navigate('/payment', {
         state: {
           sessionId: session._id,
@@ -196,19 +215,22 @@ const BookingPage = () => {
 
         {/* Time Slot */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Select Available Time Slot</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Select Available Time Slot (Tutor's timezone: EAT, UTC+3)
+          </label>
           <select
             value={selectedSlot ? `${selectedSlot.date} ${selectedSlot.day} ${selectedSlot.time}` : ''}
             onChange={(e) => {
               const [date, day, time] = e.target.value.split(' ');
-              setSelectedSlot({ date, day, time });
+              const slot = availableSlots.find(s => s.date === date && s.day === day && s.time === time);
+              setSelectedSlot(slot);
             }}
             className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">-- Choose a slot --</option>
             {availableSlots.map((slot, index) => (
               <option key={index} value={`${slot.date} ${slot.day} ${slot.time}`}>
-                {`${slot.day}, ${slot.date} at ${slot.time}`}
+                {`${slot.day}, ${slot.date} at ${slot.time} (Your local time)`}
               </option>
             ))}
           </select>
@@ -216,16 +238,19 @@ const BookingPage = () => {
 
         {/* Duration */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Select Duration (hours)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Select Duration</label>
           <select
             value={selectedDuration}
-            onChange={(e) => setSelectedDuration(parseInt(e.target.value))}
+            onChange={(e) => setSelectedDuration(parseFloat(e.target.value))}
             className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {[1, 2, 3, 4].map(hour => (
-              <option key={hour} value={hour}>
-                {hour} hour{hour > 1 ? 's' : ''}
-              </option>
+            {[
+              { value: 0.5, label: '30 minutes' },
+              { value: 1, label: '1 hour' },
+              { value: 1.5, label: '1.5 hours' },
+              { value: 2, label: '2 hours' },
+            ].map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </div>

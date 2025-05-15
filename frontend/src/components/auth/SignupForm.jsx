@@ -52,7 +52,7 @@ export const SignupForm = () => {
           ...prev,
           availability: {
             ...prev.availability,
-            [value]: prev.availability[value] ? undefined : { start: '', end: '' },
+            [value]: prev.availability[value] ? undefined : { start: '', end: '', startLocal: '', endLocal: '' },
           },
         }));
       }
@@ -64,13 +64,29 @@ export const SignupForm = () => {
   };
 
   const handleTimeChange = (day, field, value) => {
-    const timeString = value;
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    const utcHours = date.getUTCHours();
-    const utcMinutes = date.getUTCMinutes();
-    const utcTimeString = `${String(utcHours).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')}`;
+    if (!value) {
+      setFormData((prev) => ({
+        ...prev,
+        availability: {
+          ...prev.availability,
+          [day]: {
+            ...prev.availability[day],
+            [field]: '',
+            [`${field}Local`]: '',
+          },
+        },
+      }));
+      return;
+    }
+
+    // Assume input time is in EAT (UTC+3)
+    const [hours, minutes] = value.split(':').map(Number);
+    const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const localDateTime = new Date(`2025-01-01T${timeString}:00+03:00`); // Arbitrary date, EAT
+    const utcDateTime = new Date(localDateTime.getTime() - (3 * 60 * 60 * 1000)); // Convert to UTC
+    const utcTimeString = utcDateTime.toISOString().split('T')[1].substring(0, 5); // e.g., "06:00"
+
+    console.log(`Time change for ${day} ${field}: Local=${timeString} (EAT), UTC=${utcTimeString}`);
 
     setFormData((prev) => ({
       ...prev,
@@ -121,6 +137,8 @@ export const SignupForm = () => {
       })).filter(slot => slot.startTime && slot.endTime);
       userData.avatarUrl = formData.photo ? URL.createObjectURL(formData.photo) : undefined;
     }
+
+    console.log('Submitting userData:', JSON.stringify(userData, null, 2));
 
     try {
       const response = await dispatch(registerUser(userData)).unwrap();
@@ -236,7 +254,7 @@ export const SignupForm = () => {
                 <option value="bachelor">Bachelor's Degree</option>
                 <option value="master">Master's Degree</option>
                 <option value="phd">PhD</option>
-              </select>
+                </select>
               <select name="levelToTeach" value={formData.levelToTeach} onChange={handleChange} required className="w-full p-2 border rounded">
                 <option value="">Education Level You Want to Teach</option>
                 <option value="primary">Primary School</option>
@@ -270,28 +288,64 @@ export const SignupForm = () => {
                 </div>
               </div>
               <div>
-                <label className="block font-medium mb-1">Availability</label>
+                <label className="block font-medium mb-1">Availability (Times in EAT, UTC+3)</label>
                 <div className="space-y-2">
                   {DAYS.map(day => (
                     <div key={day} className="flex items-center gap-2">
-                      <input type="checkbox" name="availability" value={day} onChange={handleChange} checked={!!formData.availability[day]} />
+                      <input
+                        type="checkbox"
+                        name="availability"
+                        value={day}
+                        onChange={handleChange}
+                        checked={!!formData.availability[day]}
+                      />
                       <span className="text-sm">{day}</span>
-                      <input type="time" value={formData.availability[day]?.start || ''} onChange={(e) => handleTimeChange(day, 'start', e.target.value)} className="border rounded px-2 py-1 text-sm" disabled={!formData.availability[day]} />
+                      <input
+                        type="time"
+                        value={formData.availability[day]?.startLocal || ''}
+                        onChange={(e) => handleTimeChange(day, 'start', e.target.value)}
+                        className="border rounded px-2 py-1 text-sm"
+                        disabled={!formData.availability[day]}
+                      />
                       <span className="text-sm">to</span>
-                      <input type="time" value={formData.availability[day]?.end || ''} onChange={(e) => handleTimeChange(day, 'end', e.target.value)} className="border rounded px-2 py-1 text-sm" disabled={!formData.availability[day]} />
+                      <input
+                        type="time"
+                        value={formData.availability[day]?.endLocal || ''}
+                        onChange={(e) => handleTimeChange(day, 'end', e.target.value)}
+                        className="border rounded px-2 py-1 text-sm"
+                        disabled={!formData.availability[day]}
+                      />
                     </div>
                   ))}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-2">Bio (Optional)</label>
-                <textarea name="bio" rows={4} placeholder="Tell students about your teaching style and experience..." className="w-full p-2 rounded text-sm focus:outline-teal-500 border border-gray-500/20" value={formData.bio} onChange={handleChange} />
+                <textarea
+                  name="bio"
+                  rows={4}
+                  placeholder="Tell students about your teaching style and experience..."
+                  className="w-full p-2 rounded text-sm focus:outline-teal-500 border border-gray-500/20"
+                  value={formData.bio}
+                  onChange={handleChange}
+                />
               </div>
-              <Input name="tutorPrice" placeholder="Price per Hour (ETB)" value={formData.tutorPrice} onChange={handleChange} required className="focus:ring-teal-500"/>
+              <Input
+                name="tutorPrice"
+                placeholder="Price per Hour (ETB)"
+                value={formData.tutorPrice}
+                onChange={handleChange}
+                required
+                className="focus:ring-teal-500"
+              />
             </>
           )}
 
-          <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full bg-teal-700 hover:bg-teal-800"
+            disabled={loading}
+          >
             {loading ? 'Creating Account...' : 'Create Account'}
           </Button>
         </form>
