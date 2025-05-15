@@ -23,7 +23,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Adjust to your frontend URL
+    origin: 'https://mdafonlinetutorplatform.onrender.com/', // Adjust to your frontend URL
     methods: ['GET', 'POST'],
   },
 });
